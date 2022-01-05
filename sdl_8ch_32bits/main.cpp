@@ -59,7 +59,7 @@ int main(int argc, char * argv[])
 
     SDL_AudioSpec wanted_spec;
     wanted_spec.freq = 48000;
-    wanted_spec.format = AUDIO_S16SYS; //AUDIO_S32SYS;
+    wanted_spec.format = AUDIO_S32SYS;
     wanted_spec.channels = channel;
     wanted_spec.silence = 0;
     wanted_spec.samples = samples;
