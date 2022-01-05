@@ -7,6 +7,23 @@
 int readPCM(FILE* pFile, int8_t* pBuf, uint32_t size);
 
 
+
+// 默认大端了
+int16_t from2Bytes(const int8_t* pBuf)
+{
+    return * ((int16_t*)(pBuf));
+}
+
+
+int32_t from4Bytes(const int8_t* pBuf)
+{
+     return * ((int32_t*)(pBuf));
+}
+
+
+
+
+
 typedef struct Packet {
     int8_t* pBuf;
     uint32_t  size;
@@ -54,7 +71,7 @@ int main(int argc, char * argv[])
     }
 
     int channel = 8;
-    int samples =  128;
+    int samples =  512;
     int bufSize = 2 * channel * samples ;
 
     SDL_AudioSpec wanted_spec;
@@ -83,9 +100,25 @@ int main(int argc, char * argv[])
         int8_t* pData = nullptr;
         uint32_t  size = 0;
 
-        pData = new int8_t [readSize];
-        size = readSize;
-        memcpy(pData,pBuf, readSize);
+        // 16bits 转 32 bits
+        auto p = new int32_t[readSize/2];
+
+        // 每16bits作为一个单元, 一共readSize/2
+        for (int i = 0; i < readSize/2; ++i) {
+
+            int16_t  volume = from2Bytes(pBuf + i*2);
+
+            p[i] = volume;
+
+            int32_t  volume2 = from4Bytes(reinterpret_cast<const int8_t *>(p + i));
+            if (volume != volume2 ) {
+                printf("%d != %d \n", volume, volume2);
+            }
+        }
+
+        // 16bits -> 32bits
+        size = readSize/2 * 4;
+        pData = reinterpret_cast<int8_t *>(p);  //
 
         mtxList.lock();
         packetList.emplace_back(pData, size);
