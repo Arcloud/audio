@@ -66,11 +66,6 @@ int main(int argc, char * argv[])
     wanted_spec.samples = samples;
     wanted_spec.callback = fill_audio;
 
-
-    if(wanted_spec.channels == 6) {
-        wanted_spec.format = AUDIO_F32SYS; //AUDIO_S32SYS;
-    }
-
     if (SDL_OpenAudio(&wanted_spec, nullptr)<0){
         printf("can't open audio.\n");
         return -1;
@@ -95,21 +90,6 @@ int main(int argc, char * argv[])
             pData = new int8_t [readSize];
             size = readSize;
             memcpy(pData,pBuf, readSize);
-
-        }else {
-            int32_t* p = new int32_t[samples * wanted_spec.channels];
-            for (int i = 0; i < samples; ++i) {
-                p[i] = (int32_t) pBuf[i];
-            }
-
-            pData = (int8_t*)p;
-            size = samples * wanted_spec.channels * 4;
-
-//            ret = mixer.PostProcessPCM(16,48000, samples,2, pBuf, &pData, &size);
-//            if(ret != mmc_success) {
-//                printf("PostProcessPCM failed, %s\n", ret->CString());
-//                return -1;
-//            }
         }
 
         mtxList.lock();
