@@ -27,3 +27,5 @@ ffmpeg -i music_orig_MultDmix6Ch.wav -vn -ac 6 -ar 48000 -acodec pcm_s32le -y mu
 ### 例子说明
 + sdl 播放双声道PCM
 + sdl_8_channel 播放8声道PCM
++ sdl_8ch_32bits 播放8省道，位深为32bits的PCM
++ sdl_wav 播放WAV文件
