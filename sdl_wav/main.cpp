@@ -90,7 +90,7 @@ int main(int argc, char *argv[]){
         goto __FAIL;
     }
 
-    //读取wav文件头
+    // 读取wav文件头
     fread(&riff_wave_header, sizeof(riff_wave_header), 1, wavFd);
 
     if ((riff_wave_header.riff_id != ID_RIFF) ||
