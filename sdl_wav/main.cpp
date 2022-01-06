@@ -223,7 +223,7 @@ int main(int argc, char *argv[]){
         packetList.emplace_back(pData, readSize);
         mtxList.unlock();
 
-        SDL_Delay(1);
+        SDL_Delay(2);
     }
 
 
