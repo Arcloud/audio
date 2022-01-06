@@ -18,8 +18,21 @@
 
 
 #include <libkern/OSByteOrder.h>
+#include <list>
+#include <mutex>
 
-#define BUFFER_SIZE 81920
+
+typedef struct Packet {
+    int8_t* pBuf;
+    uint32_t  size;
+    Packet(int8_t* pBuf, uint32_t size) : pBuf(pBuf), size(size) {};
+}Packet;
+
+std::list<Packet> packetList;
+std::mutex mtxList;
+
+
+//#define BUFFER_SIZE 81920
 
 #define ID_RIFF 0x46464952
 #define ID_WAVE 0x45564157
@@ -38,7 +51,7 @@ struct chunk_header {
 };
 
 struct chunk_fmt {
-    uint16_t audio_format;
+   uint16_t audio_format;
     uint16_t num_channels;
     uint32_t sample_rate;
     uint32_t byte_rate;
@@ -46,33 +59,26 @@ struct chunk_fmt {
     uint16_t bits_per_sample;
 };
 
-
-static Uint8      *data_buf       = NULL;
-static Uint8      *consume_pos    = NULL;
-static uint32_t   data_len        = 0;
-
 void consume_audio_data(void *udata, Uint8 *stream, int len){
 
-    if(data_len == 0){
-        printf("consume_audio_data data_len == 0 return \n");
-        return;
+    mtxList.lock();
+    if(!packetList.empty()) {
+        auto p = packetList.front();
+        memcpy(stream, (uint8_t *)p.pBuf, p.size);
+        delete [] p.pBuf;
+        packetList.pop_front();
     }
-
-    SDL_memset(stream, 0, len);
-
-    len = (len < data_len) ? len : data_len;
-    SDL_MixAudio(stream, consume_pos, len, SDL_MIX_MAXVOLUME);
-    consume_pos += len;
+    mtxList.unlock();
 }
 
 int main(int argc, char *argv[]){
 
-    FILE *wavFd = NULL;
+    FILE *wavFd;
     SDL_AudioSpec spec;
     int more_chunks = 1;
-    struct riff_wave_header riff_wave_header;
-    struct chunk_header chunk_header;
-    struct chunk_fmt chunk_fmt;
+    struct riff_wave_header riff_wave_header{};
+    struct chunk_header chunk_header{};
+    struct chunk_fmt chunk_fmt{};
 
     if(argc < 2) {
         printf("\n\n/Usage:./main xxxx.wav/\n");
@@ -87,7 +93,7 @@ int main(int argc, char *argv[]){
     wavFd = fopen(argv[1], "rb");
     if(!wavFd){
         fprintf(stderr, "Failed to open pcm file!\n");
-        goto __FAIL;
+        return -1;
     }
 
     // 读取wav文件头
@@ -97,7 +103,7 @@ int main(int argc, char *argv[]){
         (riff_wave_header.wave_id != ID_WAVE)) {
         fprintf(stderr, "Error: '%s' is not a riff/wave file\n", argv[1]);
         fclose(wavFd);
-        goto __FAIL;
+        return -1;
     }
 
     do {
@@ -118,13 +124,12 @@ int main(int argc, char *argv[]){
         }
     } while (more_chunks);
 
-    //分配buffer
-    data_buf = (Uint8*)malloc(BUFFER_SIZE);
-    if(!data_buf){
-        printf("malloc data_buf fail!\n");
-        goto __FAIL;
-    }
-    //填充结构体各字段
+    printf("sample_rate:%d  num_channels:%d bits_per_sample:%d\n",
+           chunk_fmt.sample_rate,
+           chunk_fmt.num_channels,
+           chunk_fmt.bits_per_sample);
+
+    // 填充结构体各字段
     spec.freq = chunk_fmt.sample_rate;
 
     switch (chunk_fmt.bits_per_sample){
@@ -132,53 +137,51 @@ int main(int argc, char *argv[]){
         case 16:
             spec.format = AUDIO_S16SYS;//AUDIO_U16SYS;
             break;
-
+        case 24:
         case 32:
             spec.format = AUDIO_S32SYS;
             break;
-
-        case 24:
-            spec.format = AUDIO_S32SYS;
-            break;
-
         default:
             printf("not support this format, bits_per_sample:%d\n", chunk_fmt.bits_per_sample);
-            goto __FAIL;
+            return -1;
     }
+
 
     spec.channels = chunk_fmt.num_channels;
     spec.silence = 0;
-    spec.samples = 2048;
+    spec.samples = 256;
     spec.callback = consume_audio_data;//回调函数由SDL内部线程调用
-    spec.userdata = NULL;
+    spec.userdata = nullptr;
     printf("spec.channels=%d,spec.freq=%d, chunk_fmt.bits_per_sample=%d\n", spec.channels, spec.freq, chunk_fmt.bits_per_sample);
     //打开sdl audio设备
     if(SDL_OpenAudio(&spec, NULL)){
         fprintf(stderr, "Failed to open audio device, %s\n", SDL_GetError());
-        goto __FAIL;
+        return -1;
     }
 
     //0:播放，1:暂停
     SDL_PauseAudio(0);
-    do{
-        //读取pcm数据
-        data_len = fread(data_buf, 1, BUFFER_SIZE, wavFd);
-        //  fprintf(stderr, "fread data_len = %d\n", data_len);
-        consume_pos = data_buf;
-        //sdl内部线程还没有播放完数据，这里延时等待
-        while(consume_pos < (data_buf + data_len)) {
-            SDL_Delay(1);
-        }
 
-    }while(data_len !=0);
+    uint32_t  size = chunk_fmt.bits_per_sample/8 * chunk_fmt.num_channels * spec.samples;
+    auto* pBuf = new int8_t[size];
+    int readSize = 0;
+    while(readSize = fread(pBuf, 1,size,wavFd ), readSize > 0) {
+
+        int8_t* pData = nullptr;
+        pData = new int8_t [readSize];
+        memcpy(pData,pBuf, readSize);
+
+        mtxList.lock();
+        packetList.emplace_back(pData, readSize);
+        mtxList.unlock();
+
+        SDL_Delay(1);
+    }
+
 
     SDL_CloseAudio();
 
-    __FAIL:
-    if(data_buf){
-        free(data_buf);
-    }
-
+    delete [] pBuf;
     if(wavFd){
         fclose(wavFd);
     }
