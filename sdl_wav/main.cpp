@@ -59,6 +59,23 @@ struct chunk_fmt {
     uint16_t bits_per_sample;
 };
 
+
+int32_t from3Bytes(const int8_t* pBuf)
+{
+    int32_t result = 0;
+    result += pBuf[0];
+    result += pBuf[1] << 8;
+    result += pBuf[2] << 16;
+    return result;
+}
+
+
+int32_t from4Bytes(const int8_t* pBuf)
+{
+    return * ((int32_t*)(pBuf));
+}
+
+
 void consume_audio_data(void *udata, Uint8 *stream, int len){
 
     mtxList.lock();
@@ -132,19 +149,6 @@ int main(int argc, char *argv[]){
     // 填充结构体各字段
     spec.freq = chunk_fmt.sample_rate;
 
-    switch (chunk_fmt.bits_per_sample){
-
-        case 16:
-            spec.format = AUDIO_S16SYS;//AUDIO_U16SYS;
-            break;
-        case 24:
-        case 32:
-            spec.format = AUDIO_S32SYS;
-            break;
-        default:
-            printf("not support this format, bits_per_sample:%d\n", chunk_fmt.bits_per_sample);
-            return -1;
-    }
 
 
     spec.channels = chunk_fmt.num_channels;
@@ -153,6 +157,25 @@ int main(int argc, char *argv[]){
     spec.callback = consume_audio_data;//回调函数由SDL内部线程调用
     spec.userdata = nullptr;
     printf("spec.channels=%d,spec.freq=%d, chunk_fmt.bits_per_sample=%d\n", spec.channels, spec.freq, chunk_fmt.bits_per_sample);
+
+
+    uint32_t  size = 0;
+    switch (chunk_fmt.bits_per_sample){
+
+        case 16:
+            spec.format = AUDIO_S16SYS; //AUDIO_U16SYS;
+            break;
+        case 24:
+        case 32:
+            spec.format = AUDIO_S32SYS; //AUDIO_S32SYS;
+            break;
+        default:
+            printf("not support this format, bits_per_sample:%d\n", chunk_fmt.bits_per_sample);
+            return -1;
+    }
+
+    size = chunk_fmt.bits_per_sample/8 * chunk_fmt.num_channels * spec.samples;
+
     //打开sdl audio设备
     if(SDL_OpenAudio(&spec, NULL)){
         fprintf(stderr, "Failed to open audio device, %s\n", SDL_GetError());
@@ -162,14 +185,39 @@ int main(int argc, char *argv[]){
     //0:播放，1:暂停
     SDL_PauseAudio(0);
 
-    uint32_t  size = chunk_fmt.bits_per_sample/8 * chunk_fmt.num_channels * spec.samples;
+
     auto* pBuf = new int8_t[size];
     int readSize = 0;
     while(readSize = fread(pBuf, 1,size,wavFd ), readSize > 0) {
 
         int8_t* pData = nullptr;
-        pData = new int8_t [readSize];
-        memcpy(pData,pBuf, readSize);
+
+        if(chunk_fmt.bits_per_sample != 24) {
+            pData = new int8_t [readSize];
+            memcpy(pData,pBuf, readSize);
+        } else {
+            // 3 个字节一个单元
+            int unit = readSize/3;
+
+            // 24 bits  转 32bit
+            auto p = new uint32_t [unit];
+
+            for(int i =0; i< unit; i++) {
+
+                uint32_t  volume = from3Bytes(pBuf+ 3*i);
+
+                p[i] = volume;
+
+                uint32_t  volume2 = from4Bytes(reinterpret_cast<const int8_t *>(p + i));
+                if (volume != volume2) {
+                    printf("%d != %d \n", volume, volume2);
+                }
+//                printf("%u = %u \n", volume, volume2);
+            }
+
+            readSize = 4*unit;
+            pData = reinterpret_cast<int8_t *>(p);
+        }
 
         mtxList.lock();
         packetList.emplace_back(pData, readSize);

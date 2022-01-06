@@ -7,11 +7,13 @@ set(TARGET sdl_wav_sample)
 include_directories(/usr/local/include)
 
 
-#set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
-#set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
+set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
+
+
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     add_definitions("-Wno-invalid-source-encoding")
-    add_definitions("-O2")
+    add_definitions("-O2 -g")
 elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
     set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk")
     set(CMAKE_CXX_FLAGS "--sysroot ${CMAKE_OSX_SYSROOT} ${CMAKE_CXX_FLAGS}")
