@@ -71,7 +71,7 @@ int main(int argc, char * argv[])
     }
 
     int channel = 8;
-    int samples =  512;
+    int samples =  256;
     int bufSize = 2 * channel * samples ;
 
     SDL_AudioSpec wanted_spec;

@@ -195,6 +195,35 @@ int main(int argc, char *argv[]){
         if(chunk_fmt.bits_per_sample != 24) {
             pData = new int8_t [readSize];
             memcpy(pData,pBuf, readSize);
+
+
+            
+            int bytesPerSample = chunk_fmt.bits_per_sample / 8;
+            int numSamples = readSize/(bytesPerSample * chunk_fmt.num_channels);
+            int8_t* p = new int8_t[readSize/chunk_fmt.num_channels];
+
+
+            for(int i=0; i < numSamples; i++) {
+                int step1 = i * bytesPerSample * chunk_fmt.num_channels;
+                int step2 = i * bytesPerSample; // 一个声道
+                // FILE* pFile= fopen("./wav_l.pcm", "ab+");
+                // if(pFile != nullptr) {
+                //     // fwrite(pSample+step, 2, 1, pFile);
+                //     fclose(pFile);
+                // }
+
+                memcpy(p+step2, pData+step1, bytesPerSample);
+            }
+
+            // ffplay -ar 48000 -channels 1 -f s16le -i wav_l.pcm
+            FILE* pFile= fopen("./wav_l.pcm", "ab+");
+            if(pFile != nullptr) {
+                fwrite(p, 1, readSize/chunk_fmt.num_channels, pFile);
+                fclose(pFile);
+            }
+
+            delete [] p;
+
         } else {
             // 3 个字节一个单元
             int unit = readSize/3;
