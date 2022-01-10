@@ -29,3 +29,9 @@ ffmpeg -i music_orig_MultDmix6Ch.wav -vn -ac 6 -ar 48000 -acodec pcm_s32le -y mu
 + sdl_8_channel 播放8声道PCM
 + sdl_8ch_32bits 播放8省道，位深为32bits的PCM
 + sdl_wav 播放WAV文件
+
+
+### 参考资料
++ [《FFMPEG开发快速入坑——音频转换处理》](https://zhuanlan.zhihu.com/p/345880400)
++ [libfar](https://github.com/feixiao/libfar) C/C++ fast audio resampling library.
++ [r8brain-free-src](https://github.com/feixiao/r8brain-free-src) High-quality pro audio resampler / sample rate converter C++ library. 
