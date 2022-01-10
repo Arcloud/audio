@@ -196,56 +196,34 @@ int main(int argc, char *argv[]){
             pData = new int8_t [readSize];
             memcpy(pData,pBuf, readSize);
 
-
-            
-            int bytesPerSample = chunk_fmt.bits_per_sample / 8;
-            int numSamples = readSize/(bytesPerSample * chunk_fmt.num_channels);
-            int8_t* p = new int8_t[readSize/chunk_fmt.num_channels];
-
-
-            for(int i=0; i < numSamples; i++) {
-                int step1 = i * bytesPerSample * chunk_fmt.num_channels;
-                int step2 = i * bytesPerSample; // 一个声道
-                // FILE* pFile= fopen("./wav_l.pcm", "ab+");
-                // if(pFile != nullptr) {
-                //     // fwrite(pSample+step, 2, 1, pFile);
-                //     fclose(pFile);
-                // }
-
-                memcpy(p+step2, pData+step1, bytesPerSample);
-            }
-
-            // ffplay -ar 48000 -channels 1 -f s16le -i wav_l.pcm
-            FILE* pFile= fopen("./wav_l.pcm", "ab+");
-            if(pFile != nullptr) {
-                fwrite(p, 1, readSize/chunk_fmt.num_channels, pFile);
-                fclose(pFile);
-            }
-
-            delete [] p;
+//            int bytesPerSample = chunk_fmt.bits_per_sample / 8;
+//            int numSamples = readSize/(bytesPerSample * chunk_fmt.num_channels);
+//            int8_t* p = new int8_t[readSize/chunk_fmt.num_channels];
+//
+//
+//            for(int i=0; i < numSamples; i++) {
+//                int step1 = i * bytesPerSample * chunk_fmt.num_channels;
+//                int step2 = i * bytesPerSample; // 一个声道
+//                // FILE* pFile= fopen("./wav_l.pcm", "ab+");
+//                // if(pFile != nullptr) {
+//                //     // fwrite(pSample+step, 2, 1, pFile);
+//                //     fclose(pFile);
+//                // }
+//
+//                memcpy(p+step2, pData+step1, bytesPerSample);
+//            }
+//
+//            // ffplay -ar 48000 -channels 1 -f s16le -i wav_l.pcm
+//            FILE* pFile= fopen("./wav_l.pcm", "ab+");
+//            if(pFile != nullptr) {
+//                fwrite(p, 1, readSize/chunk_fmt.num_channels, pFile);
+//                fclose(pFile);
+//            }
+//
+//            delete [] p;
 
         } else {
-            // 3 个字节一个单元
-            int unit = readSize/3;
-
-            // 24 bits  转 32bit
-            auto p = new uint32_t [unit];
-
-            for(int i =0; i< unit; i++) {
-
-                uint32_t  volume = from3Bytes(pBuf+ 3*i);
-
-                p[i] = volume;
-
-                uint32_t  volume2 = from4Bytes(reinterpret_cast<const int8_t *>(p + i));
-                if (volume != volume2) {
-                    printf("%d != %d \n", volume, volume2);
-                }
-//                printf("%u = %u \n", volume, volume2);
-            }
-
-            readSize = 4*unit;
-            pData = reinterpret_cast<int8_t *>(p);
+            // 转32bits
         }
 
         mtxList.lock();
