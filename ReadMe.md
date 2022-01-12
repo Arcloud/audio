@@ -31,6 +31,9 @@ ffmpeg -i music_orig_MultDmix6Ch.wav -vn -ac 6 -ar 48000 -acodec pcm_s32le -y mu
 + sdl_wav 播放WAV文件
 
 
+### 工具
++ [audacity](https://github.com/audacity/audacity/releases) 音频
+
 ### 参考资料
 + [《FFMPEG开发快速入坑——音频转换处理》](https://zhuanlan.zhihu.com/p/345880400)
 + [libfar](https://github.com/feixiao/libfar) C/C++ fast audio resampling library.
