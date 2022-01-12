@@ -36,4 +36,6 @@ target_include_directories(${TARGET} PRIVATE /usr/local/include)
 
 target_link_libraries(${TARGET} PRIVATE
         /usr/local/Cellar/sdl2/2.0.12_1/lib/libSDL2.dylib
+        /usr/local/lib/libswresample.dylib
+        /usr/local/lib/libavutil.dylib
         )
